@@ -1,0 +1,133 @@
+---
+title: "COVID_analysis"
+author: "S. Asuka"
+date: "2023-10-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This report aims to analyze and forecast the number of COVID-19 deaths in Japan, Singapore, and Thailand from the interest on Asian countries. We'll use various visualization techniques and time series forecasting.
+
+## Setup
+
+First the required packages are loaded. tidyverse is for manipulating data set. ggplot2 for visualization, and forecast is for time series analysis. 
+
+
+```{r package}
+library(tidyverse)
+library(ggplot2)
+library(forecast)
+```
+
+## Data import
+Next, importing the COVID-19 deaths data from the online repository.
+
+```{r data}
+url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
+data <- read.csv(url)
+
+```
+
+## Data Tidying
+
+The raw data is in a format that's not ideal for analysis and covers a large number of countries. Therefore, we perform the following steps to tidy the data:
+
+1. **Long Format**: We transform the data from a wide format to a long format, making it easier to work with.
+2. **Date Formatting**: The date column is initially not easy to interpret, so we convert it to a standard date format.
+3. **Filtering**: Finally, we narrow down the data to focus on three specific countries: Japan, Singapore, and Thailand.
+
+
+```{r data2}
+datalong = data %>% 
+pivot_longer(cols =  -c('Province.State','Country.Region', Lat, Long),
+             names_to =  "date",
+             values_to = "deaths") %>% 
+    select(-c(Lat,Long))
+datalong$date =     gsub("X","",datalong$date)
+datalong$date =     gsub("\\.","/",datalong$date)
+datalong$date =     as.Date(datalong$date, format ="%m/%d/%y")
+threelong = datalong %>% filter(Country.Region %in% c("Japan", "Singapore", "Thailand"))
+head(threelong,3)
+unique(threelong$Country.Region)
+```
+
+
+## Trend for the three countries 
+Visualize the time series data for the three countries.
+
+```{r ggplot, echo=TRUE}
+ggplot(threelong, aes(x=date, y=deaths, color=Country.Region)) +
+    geom_line() +
+    geom_point() +
+    ggtitle("Time Series Plot of Deaths") +
+    xlab("Date") +
+    ylab("Number of Deaths") +
+    theme_minimal()
+```
+
+As you can see, the number of deaths in Japan soared, while Thailand did not show such dynamics. It may show that Japan situation was worse than Thailand and Singapore. However considering the population, those data are biased. Japan has 123 million, while Singapore has 6 million and Thailand has 71million. Also, the number of confirmed cases may be different. It may need to do dive deep in these area to make conclusion. 
+
+
+
+### Small note on Population 
+
+- **Japan**: Approximately 123 million
+- **Singapore**: Approximately 6 million 
+- **Thailand**: Approximately 71 million
+
+## Violin Plots
+We create violin plots for Japan and Singapore to understand the distribution of deaths by year.
+
+```{r japan}
+japanlong = datalong %>% filter(Country.Region %in% c("Japan"))
+japanlong$year <- year(japanlong$date)
+ggplot(japanlong, aes(x=factor(year), y=deaths)) +
+    geom_violin() +
+    ggtitle("Violin Plot of Deaths in Japan by Year") +
+    xlab("Year") +
+    ylab("Number of Deaths") +
+    theme_minimal()
+```
+
+
+This is Singapore.
+
+
+```{r singapore}
+sglong = datalong %>% filter(Country.Region %in% c("Singapore"))
+sglong$year <- year(sglong$date)
+ggplot(sglong, aes(x=factor(year), y=deaths)) +
+    geom_violin() +
+    ggtitle("Violin Plot of Deaths in Singapore by Year") +
+    xlab("Year") +
+    ylab("Number of Deaths") +
+    theme_minimal()
+```
+
+The distributions for Japan and Singapore look quite different. The Singapore plot appears needle-like, while the Japan plot resembles a violin shape. This suggests that the number of deaths in Japan fluctuated up and down, whereas Singapore experienced a more one-way, drastic momentum.
+
+## Analysis: forecast through ARIMA model
+Using the ARIMA model, a common method for making predictions, we forecast the death toll in Japan for the next 12 months.
+
+
+```{r forecast}
+japanlong <- japanlong[order(japanlong$date),]
+
+# Convert to time series data
+japan_ts = ts(japanlong$deaths, start=c(year(min(japanlong$date)), yday(min(japanlong$date))), frequency=365)
+
+# Fit ARIMA model and  Forecast next 365 days (12 months)
+fit = auto.arima(japan_ts)
+forecast_result = forecast(fit, h=365)
+
+plot(forecast_result, main="12-Month Forecast with ARIMA model", xlab="Time", ylab="Deaths")
+
+```
+
+The colored lines are predicted area. It shows moderate increase is predicted. This is just one possibility.
+

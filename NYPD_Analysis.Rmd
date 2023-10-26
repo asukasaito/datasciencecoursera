@@ -1,0 +1,131 @@
+---
+title: "NYPD_Analysis"
+author: "S. Asuka"
+date: "2023-10-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+In this document, Analysis of NYPD shooting incidents is conducted. To see the big picture, time series analysis on the number of incidents and relation between the number of indicants and perpetrators race are conducted.
+
+## Dataset
+The data set contain data from 2006 to 2022 about shooting incidents happened in NY with attributes of Perpetrators and victims. 
+Data set can be found here. And detail headers (columns) will be shonwn below.
+https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic
+
+## Structure
+This documents consists of 4 parts; 1) preparation, 2) time series analysis, 3) analysis by race and 4) regression by race. 
+
+# Import library
+As preparation, libraries and the data are  imported
+```{r cars}
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+library(mgcv)
+```
+
+## Import dataset
+Data file came from;
+https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic
+As it could not directry imoprt dataset, so downloaded data set was used instead.
+
+
+```{r pressure, echo=TRUE}
+#df =read.csv("NYPD_Shooting_Incident_Data__Historic_.csv")
+url = "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv"
+df = read.csv(url)
+df$OCCUR_DATE =  as.Date(as.character(df$OCCUR_DATE), format="%m/%d/%Y")
+head(df,1)
+
+```
+
+# Focus on insident trend by year
+The trend of the number of incidents are analyzed. Grouping by Year and flag that murdered or not, the trend is plotted
+
+```{r focus}
+#group_by(year,BORO,STATISTICAL_MURDER_FLAG,PERP_AGE_GROUP,PERP_SEX,PERP_RACE,VIC_AGE_GROUP,VIC_SEX,VIC_RACE) %>%
+df.gb = df %>% 
+    mutate(year = floor_date(OCCUR_DATE, "year")) %>%
+        group_by(year,STATISTICAL_MURDER_FLAG,,PERP_RACE) %>%
+    summarise(INCIDENT_KEY = n())
+head(df.gb)
+
+
+```
+
+# Plotting dataset
+
+```{r plot}
+
+ggplot(df.gb, aes(x=year,y =INCIDENT_KEY, group=STATISTICAL_MURDER_FLAG),color= STATISTICAL_MURDER_FLAG)+
+      geom_bar(aes( color= STATISTICAL_MURDER_FLAG, fill = STATISTICAL_MURDER_FLAG), stat = "identity",  position = "stack", show.legend = T) +
+    geom_smooth(method="lm") +
+    theme(axis.text.x = element_text(angle = 90))
+```
+
+# Interpretation of the graph
+The number of incidents decreased from 2006 to 2016 and became stable by 2019. From 2020, it increased again. True (murder) moved relatively moderately compared to false (non-murder) incidents.
+
+# Insident by Race
+Secondly, relation between the number of incidents and  perpetrator race is analyzed. Using a boxing plot, the mean and distribution for each race is observed.
+
+```{r race}
+#group_by(year,BORO,STATISTICAL_MURDER_FLAG,PERP_AGE_GROUP,PERP_SEX,PERP_RACE,VIC_AGE_GROUP,VIC_SEX,VIC_RACE) %>%
+df.gb2 = df %>% 
+    mutate(year = floor_date(OCCUR_DATE, "year")) %>%
+        group_by(year,PERP_RACE) %>%
+    summarise(INCIDENT_KEY = n())
+head(df.gb2,10)
+
+
+
+
+
+```
+
+
+
+```{r race2}
+ 
+df.gb2  = df.gb2 %>%
+    mutate(PERP_RACE = fct_recode(PERP_RACE,
+                           "AS/PA" = "ASIAN / PACIFIC ISLANDER",
+                            "BL" = "BLACK",
+                             "BLHI" ="BLACK HISPANIC",
+                                  "WHHI" ="WHITE HISPANIC",
+                           "WH" = "WHITE",
+                                  "AI/AN" = "AMERICAN INDIAN/ALASKAN NATIVE",
+                           "AS" = "ASIANS"
+                          ))
+
+ggplot(data = df.gb2,
+       mapping = aes(x=PERP_RACE,
+                     y=INCIDENT_KEY,
+                     fill=PERP_RACE)) +
+  geom_boxplot()
+```
+
+# Interpretation of the graph.
+
+The number of incidents was largest for Black, followed by White Hispanic and Black Hispanic, when "unknown/NA" are ignored. These results don't necessarily mean that people belonging to these races are more likely to cause issues. The data may contain certain biases, as people do. Also, the number of people living in the area, or other attributes like economic status, are not considered in this graph.
+
+# Trial to predict the number of insidents from race and year
+Graphical analysis is not always enough to show evidence of correlation. Here statistical analysis is conducted to see it by quantitatively. 
+As it is countable, Poisssion distribution is used with generalized linear regression mode.
+
+```{r model}
+model = glm( INCIDENT_KEY ~ year+PERP_RACE, data = df.gb2, family =poisson )
+
+summary(model)
+plot(model)
+```
+
+# interpretation
+
+The summary of the Poisson regression model shows that each factor, such as year and race, is statistically significant. However, the plots indicate that the residuals are not normally distributed; for instance, the QQ plot shows a light tail. This suggests that the model is not a good fit. Using Poisson regression would be more reasonable for predicting countable datasets. Therefore, a more reasonable conclusion would be that the parameters are not sufficient.
