@@ -111,35 +111,26 @@ ggplot(sglong, aes(x=factor(year), y=deaths)) +
 
 The distributions for Japan and Singapore look quite different. The Singapore plot appears needle-like, while the Japan plot resembles a violin shape. This suggests that the number of deaths in Japan fluctuated up and down, whereas Singapore experienced a more one-way, drastic momentum.
 
-## Analysis: forecast through ARIMA model
+## Analysis: forecast 
 Using the ARIMA model, a common method for making predictions, we forecast the death toll in Japan for the next 12 months.
 
 
 ```{r forecast}
 japanlong <- japanlong[order(japanlong$date),]
 
-# Convert to time series data
-japan_ts = ts(japanlong$deaths, start=c(year(min(japanlong$date)), yday(min(japanlong$date))), frequency=365)
+# Convert to time series (assuming daily data)
+japan_ts <- ts(japanlong$deaths, start=c(year(min(japanlong$date)), yday(min(japanlong$date))), frequency=365)
 
-# Fit ARIMA model and  Forecast next 365 days (12 months)
-fit = auto.arima(japan_ts)
-forecast_result = forecast(fit, h=365)
+# Fit ARIMA model
+fit <- auto.arima(japan_ts)
 
-plot(forecast_result, main="12-Month Forecast with ARIMA model", xlab="Time", ylab="Deaths")
+# Forecast next 365 days (12 months)
+forecast_result <- forecast(fit, h=365)
+
+# Plot the forecast with default error bands
+plot(forecast_result, main="12-Month Forecast with Error Bands", xlab="Time", ylab="Deaths")
 
 ```
 
-The colored lines are predicted area. It shows moderate increase is predicted. This is just one possibility.
-
-# Conclusion
-
-This report provided a comprehensive analysis of COVID-19 deaths in Japan, Singapore, and Thailand, using time series trends, violin plots, and ARIMA forecasting.
-
-1. **Time Series Trends**: The time series analysis revealed that the number of deaths in Japan has soared, while Thailand showed less dynamic changes despite having about half of Japan's population. Singapore's numbers remained relatively stable.
-
-2. **Violin Plots**: The violin plots illustrated distinct patterns for each country. Japan's death toll showed fluctuations, whereas Singapore experienced more drastic, one-directional changes.
-
-3. **Forecasting**: Using the ARIMA model, we forecasted a moderate increase in the death toll in Japan for the next 12 months.
-
-
+The colored lines are predicted area. It shows moderate increase is predicted. 
 

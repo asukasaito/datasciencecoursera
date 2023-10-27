@@ -11,11 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Overview
 
-In this document, Analysis of NYPD shooting incidents is conducted. To see the big picture, time series analysis on the number of incidents and relation between the number of indicants and perpetrators race are conducted.
+In this document, Analysis of NYPD shooting incidents is conducted. To see the big picture, time series analysis on the number of incidents and relation between the number of incidents and perpetrators race are conducted.
 
 ## Dataset
 The data set contain data from 2006 to 2022 about shooting incidents happened in NY with attributes of Perpetrators and victims. 
-Data set can be found here. And detail headers (columns) will be shonwn below.
+Data set can be found here. And detail headers (columns) will be shown below.
 https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic
 
 ## Structure
@@ -33,7 +33,6 @@ library(mgcv)
 ## Import dataset
 Data file came from;
 https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic
-As it could not directry imoprt dataset, so downloaded data set was used instead.
 
 
 ```{r pressure, echo=TRUE}
@@ -126,6 +125,6 @@ summary(model)
 plot(model)
 ```
 
-# interpretation
+# Interpretation
 
 The summary of the Poisson regression model shows that each factor, such as year and race, is statistically significant. However, the plots indicate that the residuals are not normally distributed; for instance, the QQ plot shows a light tail. This suggests that the model is not a good fit. Using Poisson regression would be more reasonable for predicting countable datasets. Therefore, a more reasonable conclusion would be that the parameters are not sufficient.
